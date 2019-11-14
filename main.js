@@ -14,6 +14,8 @@ let addWindow;
 app.on('ready', () => {
   //window
   mainWindow = new BrowserWindow({
+    width:946,
+    height:630,
     webPreferences: {
       nodeIntegration: true
     }
@@ -33,58 +35,14 @@ app.on('ready', () => {
   Menu.setApplicationMenu(mainMenu);
 });
 
-//addwindow
-function createAddWindow() {
-  //window
-  addWindow = new BrowserWindow({
-    width: 300,
-    height: 200,
-    title: 'game window with add functiuonality',
-    webPreferences: {
-      nodeIntegration: true
-    }
-  });
-  //load html
-  addWindow.loadURL(url.format({
-    pathname: path.join(__dirname, 'addWindow.html'),
-    protocol: 'file:',
-    slashes: true
-  }));
-  //garbag
-  addWindow.on('close', () => {addWindow = null})
-};
-
-//catch item:add
-ipcMain.on('item:add', (e, item) => {
-  mainWindow.webContents.send('item:add', item);
-  addWindow.close();
-});
-
 //menu temp
 const mainMenuTemp = [
   {
-    label: 'File',
-    submenu:[
-      {
-        label: 'Add Item',
-        click(){
-          createAddWindow();
-        }
-      },
-      {
-        label: 'Clear Items',
-        click(){
-          mainWindow.webContents.send('item:clear');
-        }
-      },
-      {
-        label: 'Quit',
-        accelerator: process.platform == 'darwin' ? 'Command+Q' : 'Ctrl+Q',
-        click(){
-          app.quit();
-        }
-      }
-    ]
+    label: 'Quit',
+    accelerator: process.platform == 'darwin' ? 'Command+Q' : 'Ctrl+Q',
+    click(){
+      app.quit();
+    }
   }
 ];
 

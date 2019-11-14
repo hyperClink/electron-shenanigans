@@ -3,43 +3,21 @@
   <head>
     <meta charset="utf-8">
     <title>game</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-  </head>
-  <body>
-    <nav>
-      <div class='nav-wrapper'>
-        <a class="brand-logo center">game</a>
-    </nav>
-    <ul></ul>
-
-    <script>
-      const electron = require('electron');
-      const {ipcRenderer} = electron;
-      const ul = document.querySelector('ul');
-
-      //add item
-      ipcRenderer.on('item:add', (e, item) => {
-        ul.className = "collection";
-        const li = document.createElement('li');
-        li.className = 'collection-items'
-        const itemText = document.createTextNode(item);
-        li.appendChild(itemText);
-        ul.appendChild(li);
-      });
-
-      //no item
-      ipcRenderer.on('item:clear', () => {ul.innerHTML=''; ul.className = ""});
-
-      //CLICK removea
-      ul.addEventListener('dblclick', removeItem);
-
-      function removeItem (e){
-        e.target.remove();
-        if (ul.children.length == 0){
-          ul.className = "";
-        };
+    <style media="screen">
+      .stats{
+        margin-left: 8px;
       }
+    </style>
+  </head>
+  <body style="margin: 0px">
 
-    </script>
+      <canvas id='canvas' width='930' height='512' margin=0px></canvas>
+
+      <div class="stats" id="score"></div>
+      <div class="stats" id="special"></div>
+      <div class="stats" id="upgrades"></div>
+      <div class="stats" id="stats"></div>
+      <script src='code.js'></script>
+
   </body>
 </html>
