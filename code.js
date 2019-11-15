@@ -2,9 +2,6 @@ const electron = require('electron');
 const url = require('url');
 const path = require('path');
 
-//EXPERIMANTAL
-var brk = true;
-
 //canvas init. (a)
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
@@ -19,6 +16,8 @@ var yp = 100;
 var xp = 20;
 var speed = 0;
 var speedacc = 0;
+
+var bullet_id = 0;
 
 //particles
 var nframe = 0;
@@ -66,9 +65,9 @@ var upgradesOut = document.getElementById('upgrades');
 var bullets=[];
 var enemies=[];
 var upgrades=[];
+var boundObjects=[];
 
 var bckg = [{x:0, y:0, spawned:false}];
-
 
 //img creation
 var ship = new Image();
@@ -100,9 +99,7 @@ var particle4 = new Image();
 var particle5 = new Image();
 var particle6 = new Image();
 
-bg.onload = () => {
-  console.log('loaded!');
-};
+bg.onload = () => {};
 
 //sources of images
 ship.src= path.join(__dirname, 'img/ship.png');
@@ -132,6 +129,10 @@ particle3_3.src= path.join(__dirname, "img/particle3-3.png");
 particle4.src= path.join(__dirname, "img/particle4-1.png");
 particle5.src= path.join(__dirname, "img/particle5.png");
 particle6.src= path.join(__dirname, "img/particle6.png");
+
+//init html
+scoreOutput.innerHTML='Score:' + Math.max(Math.round(score), 0) + ' Max Score:' + scoreMax;
+upgradesOut.innerHTML='Bullet Rate:' + Math.min(5, bulletUp) + '(4 max, >4 - upgrade)||||Bullet Multiplier: x' + (bulletUp2+1) + '||||Bullet Level: ' + sBulletType + '||||SP MAX: ' + spMaxU/20+ '%|||| SP Charge Rate:' + spRateU;
 
 //the fact that am running a 144hz screen and the game go crazy fast maqke this happen
 var fps, fpsInterval, startTime, now, then, elapsed;
@@ -241,13 +242,14 @@ function keyupkey1(keyu) {
   //sets up the bullet
     fireBullet = function(xOffset, yOffset, defSpeed,
         accel, accelRate, defSpeedY, accelY, accelRateY, scaleX, scaleY, tscr, tscd, doTimeScale,
-        doTimeAccel, timerEnd, spread, xdec, ydec, xso, yso, damage, hp, kb, type, side, id) {
+        doTimeAccel, timerEnd, spread, xdec, ydec, xso, yso, damage, hp, kb, type, side) {
 
       bullets.push({x:xOffset, y:yOffset, defSpeed:defSpeed,
       accel:accel, accelRate:accelRate, defSpeedY:defSpeedY, accelY:accelY, accelRateY:accelRateY, scaleX:scaleX, scaleY:scaleY, tScaleRate:tscr,
       tAccelDecay:tscd, xDecay:xdec, yDecay:ydec, timer:0, timerEnd:timerEnd,
       xspeed:xspeed*xso, yspeed:yspeed*yso, flipCoin:coinflip(),
-      doTimeScale:doTimeScale, spread:spread, damage:damage, sturdiness:hp, knockback:kb, type:type, side:side, id:id});
+      doTimeScale:doTimeScale, spread:spread, damage:damage, sturdiness:hp, knockback:kb, type:type, side:side, id:bullet_id});
+      bullet_id++;
       };
 
 
@@ -279,25 +281,49 @@ function keyupkey1(keyu) {
      return Math.round(Math.random()) * 2 - 1
    };
 
+   //remove enemy, then laser very carefully
   laserCleanup = function(i){
     if (bullets.length != 'undefined' || bullets.length != 0){
       var h = 0;
-      var flag = false;
       while (bullets[h].id != enemies[i].id){
         h++;
       };
+      bulletIdHandler(bullets[h].id);
       bullets.splice(h--, 1);
     };
+      enemyIdHandler(enemies[i].id);
       enemies.splice(i--, 1);
     };
 
-    //limits fps
-     function startAnimating(fps) {
-       fpsInterval = 1000 / fps;
-       then = Date.now();
-       startTime = then;
-       draw();
-     };
+    //limits fps hahah only 60 because i dont care
+    function startAnimating(fps) {
+      fpsInterval = 1000 / fps;
+      then = Date.now();
+      startTime = then;
+      draw();
+    };
+
+     //score handling
+    function scoreHandler(value) {
+
+      score+=value;
+      scoreOutput.innerHTML='Score:' + Math.max(Math.round(score), 0) + ' Max Score:' + scoreMax;
+    };
+
+    //id handling
+    function bulletIdHandler(ident) {
+      bullet_id--;
+      for (var i = ident; i < bullets.length; i++) {
+        bullets[i].id--;
+      };
+    };
+
+    function enemyIdHandler(ident) {
+      enemy_id--;
+      for (var i = ident; i < enemies.length; i++) {
+        enemies[i].id--;
+      };
+    };
 
 startAnimating(60);
 
@@ -331,21 +357,11 @@ function draw() {
 
   BulletRate = Math.max(2, 6-bulletUp);
 
-//score output to div
-  scoreOutput.innerHTML='Score:' + Math.max(Math.round(score), 0) + ' Max Score:' + scoreMax;
-
-//upgrades output to div
-  upgradesOut.innerHTML='Bullet Rate:' + Math.min(5, bulletUp) + '(4 max, >4 - upgrade)||||Bullet Multiplier: x' + (bulletUp2+1) + '||||Bullet Level: ' + sBulletType + '||||SP MAX: ' + spMaxU/20+ '%|||| SP Charge Rate:' + spRateU;
-
 //lose (temp.)
   if(score<0){
     score=0;
+    scoreHandler(0);
   };
-
-  if(scoreMax<Math.round(score)){
-    scoreMax=Math.round(score);
-  };
-
 
 //ship keydown actions--
 speedacc = 5+speed;
@@ -396,10 +412,10 @@ speedacc = 5+speed;
   };
 
   for (var k = 0; k < 1; k++) {
-    fireBullet(xp, randomInt(yp+5, yp+ship.height), 0, 0, randomInt(-2, -1) * Math.random() - 1,
-      0, randomInt(-3, 3)*Math.random(), 0, 4, 4, 1, 10,
-      false, false, 5, 0, 0.3, 0.3,
-      0, 0, 0, 1, 0, animnframe, 100, 0);
+    fireBullet(xp, randomInt(yp+5, yp+ship.height), 0, randomInt(-5, -3), 0.2,
+      randomInt(-2, 2) * Math.random(), 0, 0, 4, 4, 1, 10,
+      false, false, 15, 0, Math.random(), Math.random(),
+      0, 0, 0, 1, 0, animnframe, 100);
     };
 
 //ship shoot
@@ -413,11 +429,11 @@ t scale rate, timeaccelDecay, scale with time?\\, acceletation decay?\\, decay t
 spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knockback, type, side */
       for (var i = 0; i < bulletUp2+1; i++) {
         if (sBulletType == 0) {
-          fireBullet(45+xp, 21+yp, 10, Math.random()*2, 0.1, 0, 0, 0, 11, 11, 1, 1, false, true, 60, 0.1, 100, 100, 0.3, 0.3, 1, 1, 0.3, bullet1, 1, 0, 0);
+          fireBullet(45+xp, 21+yp, 10, Math.random()*2, 0.1, 0, 0, 0, 11, 11, 1, 1, false, true, 60, 0.1, 100, 100, 0.3, 0.3, 1, 1, 0.3, bullet1, 1, 0);
         };
 
         if (sBulletType == 1) {
-          fireBullet(45+xp, 21+yp, 10, Math.random()*2, 0.1, 0, 0, 0, 11, 11, 1000, 1, false, false, 60, 0.05, 100, 100, 0.3, 0.3, 1, 3, 0.6, bullet2, 1, 0);
+          fireBullet(45+xp, 21+yp, 10, Math.random()*2, 0.1, 0, 0, 0, 11, 11, 1000, 1, false, false, 60, 0.05, 100, 100, 0.3, 0.3, 1, 3, 0.6, bullet2, 1);
         };
 
       };
@@ -431,11 +447,12 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 //end
 
 //specials--
-  //specials timer
-  specTimerOut.innerHTML=Math.round(specTimer/20)+  '% SP Charge (press shift)';
   if (specTimer<spMaxU){
     specTimer+=spRateU;
   };
+
+  //specials timer
+  specTimerOut.innerHTML=Math.round(specTimer/20)+  '% SP Charge (press shift)';
 
   if (specTimer>spMaxU){
     specTimer=spMaxU;
@@ -444,7 +461,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
   //spawn special1
   if (spec1 == true && spec1u == true && specTimer>=2000){
     for (var i = 0; i < 4; i++) {
-      fireBullet(0, 0, 0, 15+randomInt(0,8), -0.29, 0, 0, 0, 10, 15, 0, 10, false, false, 0, 0, 0, -15, 0, 0, 2, 5000, 0, spec1img, 1, 0);
+      fireBullet(0, 0, 0, 15+randomInt(0,8), -0.29, 0, 0, 0, 10, 15, 0, 10, false, false, 0, 0, 0, -15, 0, 0, 2, 5000, 0, spec1img, 1);
     };
       spec1u = false;
       specTimer -= 2000;
@@ -452,7 +469,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 
   //spawn special bullet
   if (specB == true && specTimer>=300){
-      fireBullet(50+xp, 18+yp, 50, 0, 0, 0, 0, 0, 10, 15, 0, 10, false, false, 0, 0, -100, 1, 0, 0, 1.5, 5000, 0, spec1img2, 1, 0);
+      fireBullet(50+xp, 18+yp, 50, 0, 0, 0, 0, 0, 10, 15, 0, 10, false, false, 0, 0, -100, 1, 0, 0, 1.5, 5000, 0, spec1img2, 1);
       spec1u = false;
       specTimer -= 300;
   };
@@ -462,6 +479,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 //remove bullets
   for(var i=0; i<bullets.length; i++) {
         if((bullets[i].x >canvas.width || bullets[i].x+bullets[i].scaleX <0 || bullets[i].scaleX<0 || bullets[i].scaleY<0) && bullets[i].type != eLaser) {
+          bulletIdHandler(bullets[i].id);
           bullets.splice(i--, 1);
         };
     };
@@ -472,6 +490,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
           if (enemies[i].type == enemy3){
             laserCleanup(i);
           }else{
+            enemyIdHandler(enemies[i].id);
             enemies.splice(i--, 1);
           };
         };
@@ -479,11 +498,12 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
         if (i >= 0) {
           if (enemies[i].hp<=0){
 
-            score+=enemies[i].score;
+            scoreHandler(enemies[i].score);
 
             if (enemies[i].type == enemy3){
               laserCleanup(i);
             }else{
+              enemyIdHandler(enemies[i].id);
               enemies.splice(i--, 1);
             };
 
@@ -509,7 +529,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
              enemies[n].hp-=bullets[i].damage;
             // console.log(enemies[n].hp);
 
-            //particle ""system""
+            //"particle" ""system""
             switch (bullets[i].type) {
               case bullet1:
 
@@ -517,7 +537,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
               fireBullet(bullets[i].x, bullets[i].y, 0, 0, Math.random()/2*bullets[i].flipCoin,
                 0, randomInt(-3, 3)*Math.random(), 0, 3, 3, 1, 10,
                 false, false, 10, 0, 0.5, 0.5,
-                0, 0, 0, 1, 0, particle1, 100, 0);
+                0, 0, 0, 1, 0, particle1, 100);
               };
 
               break;
@@ -528,7 +548,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
               fireBullet(bullets[i].x, bullets[i].y, 0, 0, Math.random()/2*bullets[i].flipCoin,
                 0, randomInt(-3, 3)*Math.random(), 0, 3, 3, 1, 10,
                 false, false, 10, 0, 0.5, 0.5,
-                0, 0, 0, 1, 0, particle2, 100, 0);
+                0, 0, 0, 1, 0, particle2, 100);
               };
 
               break;
@@ -539,7 +559,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
               fireBullet(enemies[n].x, enemies[n].y+(enemies[n].type.height/2), 10, 0,  randomInt(2, 5)*Math.random(),
                 0, Math.random()*bullets[i].flipCoin*3, 0, 2, 2, 1, 10,
                 false, false, 10, 0, 0.1, 0.1,
-                0, 0, 0, 1, 0, particle6, 100, 0);
+                0, 0, 0, 1, 0, particle6, 100);
               };
 
               case spec1img2:
@@ -548,7 +568,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
               fireBullet(enemies[n].x, bullets[i].y, 10, 0,  randomInt(2, 5)*Math.random(),
                 0, Math.random()*bullets[i].flipCoin*3, 0, 2, 2, 1, 10,
                 false, false, 10, 0, 0.1, 0.1,
-                0, 0, 0, 1, 0, particle6, 100, 0);
+                0, 0, 0, 1, 0, particle6, 100);
               };
 
               break;
@@ -567,6 +587,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
               bullets[i].sturdiness--;
 
               if (bullets[i].sturdiness<=0) {
+                bulletIdHandler(bullets[i].id);
                 bullets.splice(i--, 1);
               };
 
@@ -581,22 +602,23 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
            bullets[i].y<yp+27 &&
            bullets[i].side==0) {
              xp-=bullets[i].knockback;
-             score-=bullets[i].damage;
+             scoreHandler(-bullets[i].damage);
 
-               fireBullet(xp+ship.width, bullets[i].y+(bullets[i].scaleY/2), 0, randomInt(-8,8)*Math.random(), randomInt(-0.1,0.1)*Math.random(),
+              fireBullet(xp+ship.width, bullets[i].y+(bullets[i].scaleY/2), 0, randomInt(-8,8)*Math.random(), randomInt(-0.1,0.1)*Math.random(),
                 0, randomInt(-8,-6)*Math.random(), 0.5, 4, 4, 1, 10,
                 false, false, 10, 0, 0.5, 0.5,
-                0, 0, 0, 1, 0, particle5, 100, 0);
+                0, 0, 0, 1, 0, particle5, 100);
 
              bullets[i].sturdiness--;
           if (bullets[i].sturdiness<=0) {
-             bullets.splice(i--, 1)
-           };
+            bulletIdHandler(bullets[i].id);
+            bullets.splice(i--, 1)
+          };
 
-           };
-         };
+          };
+        };
 
-         };
+        };
 
     };
   };
@@ -611,15 +633,15 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
            fireBullet(xp+ship.width, yp+(ship.height/2), 0, 0, Math.random()/2*coinflip(),
              0, randomInt(-3, 3)*Math.random(), 0, 3, 3, 1, 10,
              false, false, 10, 0, 0.5, 0.5,
-             0, 0, 0, 1, 0, particle1, 100, 0);
+             0, 0, 0, 1, 0, particle1, 100);
 
              fireBullet(enemies[n].x, enemies[n].y+(enemies[n].type.height/2), 0, 0, Math.random()/5*coinflip(),
                0, randomInt(-10, 10)*Math.random(), 0, 3, 3, 1, 10,
                false, false, 10, 0, 0.5, 0.5,
-               0, 0, 0, 1, 0, particle5, 100, 0);
+               0, 0, 0, 1, 0, particle5, 100);
 
          xp-=enemies[n].speedx+enemies[n].accelXinit;
-         score-=2;
+         scoreHandler(-2);
          xp-=15;
          enemies[n].hp--;
      };
@@ -634,27 +656,30 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
        yp<upgrades[n].y+bUp.height) {
 
          if (upgrades[n].type==bUp){
-         score+=5;
+         scoreHandler(5);
          bulletUp++;
        };
 
        if (upgrades[n].type==bUp2){
-         score+=15;
+         scoreHandler(15);
          bulletUp2++;
       };
 
       if (upgrades[n].type==spMax){
-        score+=15;
+        scoreHandler(15);
         spMaxU+=200;
       };
 
       if (upgrades[n].type==spRate){
-        score+=20;
+        scoreHandler(20);
         spRateU+=0.2;
       };
 
          upgrades.splice(n--, 1);
      };
+    //upgrades output to div
+      upgradesOut.innerHTML='Bullet Rate:' + Math.min(5, bulletUp) + '(4 max, >4 - upgrade)||||Bullet Multiplier: x' + (bulletUp2+1) + '||||Bullet Level: ' + sBulletType + '||||SP MAX: ' + spMaxU/20+ '%|||| SP Charge Rate:' + spRateU;
+
    };
 //end
 
@@ -699,14 +724,12 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 
       if (bullets[i].type == eLaser){
         var h = 0;
-        var flag = false;
         while (bullets[i].id != enemies[h].id){
             h++;
           };
         bullets[i].y = enemies[h].y+enemies[h].bulletY-(bullets[i].scaleY/2);
         bullets[i].x = enemies[h].x-bullets[i].scaleX;
       }else{
-
         bullets[i].x +=bullets[i].defSpeed + bullets[i].accel + bullets[i].xspeed;
         bullets[i].y += bullets[i].spread * bullets[i].flipCoin * Math.random() + bullets[i].yspeed + bullets[i].defSpeedY + bullets[i].accelY;
       };
@@ -749,6 +772,9 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 //enemies--
 //enemy draw, logic
     for(var i=0; i<enemies.length; i++) {
+
+      console.log("ENEMIES: id: " + enemies[i].id + " -- length: " + enemies.length);
+
       ctx.drawImage(enemies[i].type, enemies[i].x, enemies[i].y);
       enemies[i].accelXinit+=enemies[i].accelX;
       enemies[i].accelYinit+=enemies[i].accelY;
@@ -788,7 +814,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
     enemies[i].x, enemies[i].y+enemies[i].bulletY, -13,
     -Math.random()*2, -0.1, 0, 0, 0, 8, 8, 50, 40,
     true, true, 3, 3, 5, 5, 0, 0,
-    0.5, 4, 40, eBullet, 0, 0);
+    0.5, 4, 40, eBullet, 0);
     };
     };
 
@@ -805,7 +831,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
           enemies[i].x+enemies[i].bulletY, enemies[i].y+enemies[i].bulletY, -5-enemies[i].accelXinit,
           -Math.random(), -0.05, 0, 0, 0, 5, 5, 100, 30,
           true, false, 18, 1, 3, 3, 0, 0,
-          1, 1, 1, eBullet, 0, 0);
+          1, 1, 1, eBullet, 0);
 
         };
       };
@@ -832,7 +858,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
       enemies[i].x, enemies[i].y+enemies[i].bulletY, -10,
       -Math.random(), -0.07, 0, 0, 0, 10, 10, 100, 10,
       false, false, 30, 0, 0.01, 0.01, 0, 0, 8, 1,
-      20, eBullet, 0, 0);
+      20, eBullet, 0);
 
       enemies[i].bRate = randomInt(100, 230);
       enemies[i].offset = enemyTimer% enemies[i].bRate;
@@ -851,7 +877,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
         enemies[i].x, enemies[i].y+enemies[i].bulletY, 0,
         0, 0, 0, 0, 0, 8, 8, 50, 40,
         false, false, 0, 0, -10, -0.01, 0, 0, 0.06, 999999999,
-        0.1, eLaser, 0, enemies[i].id);
+        0.1, eLaser, 0);
         enemies[i].bRate = 999999999;
       };
     };
@@ -869,7 +895,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
       enemies[i].x, enemies[i].y+enemies[i].bulletY, -13,
       -Math.random()*2, -0.1, 0, 0, 0, 6, 6, 100, 0,
       true, false, 4, 2, 2, 2, 0, 0,
-      0.5, 4, 40, eBullet, 0, 0);
+      0.5, 4, 40, eBullet, 0);
       };
     };
 
@@ -886,7 +912,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
         enemies[i].x, enemies[i].y+enemies[i].bulletY, -10,
         -Math.random(), -0.07, 0, 0, 0, 10, 10, 100, 10,
         false, false, 30, 0, 0.01, 0.01, 0, 0,
-        4, 1, 20, eBullet, 0, 0);
+        4, 1, 20, eBullet, 0);
 
 
         enemies[i].bRate = randomInt(190, 250);
