@@ -17,8 +17,6 @@ var xp = 20;
 var speed = 0;
 var speedacc = 0;
 
-var bullet_id = 0;
-
 //particles
 var nframe = 0;
 var animnframe = null;
@@ -50,7 +48,6 @@ var keyupkey='null';
 //enemy variables
 var enemyTimer = 0;
 var enemyRate = 50;
-var enemy_id = 0;
 
 //upgrades
 var bulletUp = 0;
@@ -248,16 +245,14 @@ function keyupkey1(keyu) {
       accelX:accelX, accelRateX:accelRateX, defSpeedY:defSpeedY, accelY:accelY, accelRateY:accelRateY, scaleX:scaleX, scaleY:scaleY, tScaleRate:tscr,
       tAccelDecay:tscd, xDecay:xdec, yDecay:ydec, timer:0, timerEnd:timerEnd,
       xspeed:xspeed*xso, yspeed:yspeed*yso, flipCoin:coinflip(),
-      doTimeScale:doTimeScale, spread:spread, damage:damage, sturdiness:hp, knockback:kb, type:type, side:side, id:bullet_id});
-      bullet_id++;
+      doTimeScale:doTimeScale, spread:spread, damage:damage, sturdiness:hp, knockback:kb, type:type, side:side});
       };
 
 
 
   //adds enemies to the array
     spawnEnemy = function(x, y, hp, speedx, speedy, accelInitX, accelX, accelInitY, accelY, KBAbility, type, bx, by, bRate, score, followtype) {
-      enemies.push({x:x, y:y, hp:hp, speedx:speedx, speedy:speedy, accelXinit:accelInitX, accelX:accelX, accelYinit:accelInitY, accelY:accelY, kbAbility:KBAbility, type:type, bulleyX:bx, bulletY:by, bRate:bRate, score:score, followtype:followtype, offset:enemyTimer%bRate, id:enemy_id});
-      enemy_id++;
+      enemies.push({x:x, y:y, hp:hp, speedx:speedx, speedy:speedy, accelXinit:accelInitX, accelX:accelX, accelYinit:accelInitY, accelY:accelY, kbAbility:KBAbility, type:type, bulleyX:bx, bulletY:by, bRate:bRate, score:score, followtype:followtype, offset:enemyTimer%bRate});
     };
 
   //adds bckg
@@ -290,14 +285,14 @@ function keyupkey1(keyu) {
   laserCleanup = function(i){
     if (bullets.length != 'undefined' || bullets.length != 0){
       var h = 0;
-      while (boundObjects[h].obj1 != enemies[i].id){
+      while (boundObjects[h].obj1 != i){
         h++;
       };
       bulletIdHandler(boundObjects[h].obj2);
       bullets.splice(boundObjects[h].obj2--, 1);
       boundObjects.splice(h--, 1);
     };
-      enemyIdHandler(enemies[i].id);
+      enemyIdHandler(i);
       enemies.splice(i--, 1);
     };
 
@@ -318,14 +313,10 @@ function keyupkey1(keyu) {
 
     //id handling
     function bulletIdHandler(ident) {
-      bullet_id--;
       for (var z = 0; z < boundObjects.length; z++) {
         if (boundObjects[z].obj2 > ident) {
           boundObjects[z].obj2-=1;
         };
-      };
-      for (var i = ident+1; i < bullets.length; i++) {
-        bullets[i].id--;
       };
     };
 
@@ -334,10 +325,6 @@ function keyupkey1(keyu) {
         if (boundObjects[z].obj1 > ident) {
           boundObjects[z].obj1--;
         };
-      };
-      enemy_id--;
-      for (var i = ident+1; i < enemies.length; i++) {
-        enemies[i].id--;
       };
     };
 
@@ -440,13 +427,13 @@ speedacc = 5+speed;
       0, randomInt(-2, 2) * Math.random(), 0, 4, 4, 1, 10,
       false, false, 15, 0, Math.random()*0.2, Math.random()*0.2,
       0, 0, 0, 1, 0, animnframe, 100);
-      bindObjects("toZero", bullets[bullets.length-1].id);
+      bindObjects("toZero", bullets.length-1);
     };
 
   for (var i = 0; i < boundObjects.length; i++) {
     if (boundObjects[i].obj1 == "toZero") {
       var h = 0;
-      while (boundObjects[i].obj2 != bullets[h].id) {
+      while (boundObjects[i].obj2 != h) {
         h++;
       };
 
@@ -522,11 +509,11 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 //remove bullets
   for(var i=0; i<bullets.length; i++) {
         if((bullets[i].x >canvas.width || bullets[i].x+bullets[i].scaleX <0 || bullets[i].scaleX<0 || bullets[i].scaleY<0) && bullets[i].type != eLaser) {
-          bulletIdHandler(bullets[i].id);
+          bulletIdHandler(i);
 
           if (bullets[i].type === particle3_1 || bullets[i].type === particle3_2 || bullets[i].type === particle3_3) {
             var h = 0;
-            while (boundObjects[h].obj2 != bullets[i].id){
+            while (boundObjects[h].obj2 != i){
               h++;
             };
             boundObjects.splice(h--, 1);
@@ -542,7 +529,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
           if (enemies[i].type == enemy3){
             laserCleanup(i);
           }else{
-            enemyIdHandler(enemies[i].id);
+            enemyIdHandler(i);
             enemies.splice(i--, 1);
           };
         };
@@ -555,7 +542,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
             if (enemies[i].type == enemy3){
               laserCleanup(i);
             }else{
-              enemyIdHandler(enemies[i].id);
+              enemyIdHandler(i);
               enemies.splice(i--, 1);
             };
 
@@ -638,7 +625,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
               bullets[i].sturdiness--;
 
               if (bullets[i].sturdiness<=0) {
-                bulletIdHandler(bullets[i].id);
+                bulletIdHandler(i);
                 bullets.splice(i--, 1);
               };
 
@@ -662,7 +649,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
 
              bullets[i].sturdiness--;
           if (bullets[i].sturdiness<=0) {
-            bulletIdHandler(bullets[i].id);
+            bulletIdHandler(i);
             bullets.splice(i--, 1)
           };
 
@@ -793,7 +780,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
       if (bullets[i].type == eLaser){
         //TODO: optimize because what the fuck is this
           var h = 0;
-          while (bullets[i].id != boundObjects[h].obj2){
+          while (i != boundObjects[h].obj2){
             h++;
           };
           bullets[i].y = enemies[boundObjects[h].obj1].y+enemies[boundObjects[h].obj1].bulletY-(bullets[i].scaleY/2);
@@ -948,7 +935,7 @@ spread, xDecay and Ydecay 2, xspeed and yspeed mult.2, damage, sturdiness, knock
         false, false, 0, 0, -10, -0.01, 0, 0, 0.06, 999999999,
         0.1, eLaser, 0);
         enemies[i].bRate = Infinity;
-        bindObjects(enemies[i].id, bullets[bullets.length-1].id);
+        bindObjects(i, bullets.length-1);
       };
     };
 
