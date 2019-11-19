@@ -2,3 +2,5 @@
 release-builds/electron-tutorial-app-win32-x64/electron-tutorial-app.exe
 release-builds/electron-tutorial-app-win32-x64/LICENSE
 BULLET.txt
+img/enemy3v2-noshade.png
+img/enemy3v2.aseprite
