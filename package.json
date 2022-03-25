@@ -16,7 +16,7 @@
   "author": "nekitanekit",
   "license": "MIT",
   "dependencies": {
-    "electron": "^7.1.1"
+    "electron": "^13.6.6"
   },
   "devDependencies": {
     "electron-packager": "^14.1.0"
